@@ -23,7 +23,8 @@
 */
 using longdouble = long double;   // typically 80 bits ("extended") precision, but stored in 96 or 128 bits; on some platforms only 64 bits
 
-static const double undefined = (0.0/0.0);   // NaN
+//static const double undefined = (0.0/0.0);   // NaN
+static const double undefined = NAN;
 
 /*
 	isdefined() shall capture not only `undefined`, but all infinities and NaNs.
@@ -36,8 +37,16 @@ static const double undefined = (0.0/0.0);   // NaN
 */
 //inline bool isdefined (double x) { return ! isinf (x) && ! isnan (x); }   /* portable */
 //inline bool isdefined (double x) { return isfinite (x); }   /* portable */
-inline bool isdefined (double x) { return ((* (uint64 *) & x) & 0x7FF0'0000'0000'0000) != 0x7FF0'0000'0000'0000; }
-inline bool isundef (double x) { return ((* (uint64 *) & x) & 0x7FF0'0000'0000'0000) == 0x7FF0'0000'0000'0000; }
+//inline bool isdefined (double x) { return ((* (uint64 *) & x) & 0x7FF0'0000'0000'0000) != 0x7FF0'0000'0000'0000; }
+//inline bool isundef (double x) { return ((* (uint64 *) & x) & 0x7FF0'0000'0000'0000) == 0x7FF0'0000'0000'0000; }
+#ifdef isfinite
+inline static bool isdefined (double x) { return isfinite(x); }
+inline static bool isundef (double x) { return !isfinite(x); }
+#else
+#include <cmath>
+inline static bool isdefined (double x) { return std::isfinite(x); }
+inline static bool isundef (double x) { return !std::isfinite(x); }
+#endif
 
 template <typename T>
 constexpr T sqr (T x) {

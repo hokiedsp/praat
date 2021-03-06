@@ -23,10 +23,11 @@
 */
 
 namespace MelderInfo {
-	using Proc = void (*) (conststring32 message);
-	void _defaultProc (conststring32 message);
+	using Proc = void (*) (conststring32 message, size_t i);
+	void _defaultProc (conststring32 message, size_t i);
 	extern Proc _p_currentProc;
 	extern MelderString _foregroundBuffer, *_p_currentBuffer;
+	extern size_t _bufferOffset;
 }
 
 void MelderInfo_open ();   // clear the Info window in the background
@@ -69,12 +70,15 @@ void Melder_information (const MelderArg& first, Args... rest) {
 
 void Melder_informationReal (double value, conststring32 units);   // %.17g or --undefined--; units may be null
 
-void Melder_divertInfo (MelderString *p_buffer);   // nullptr = back to normal
+MelderString *Melder_divertInfo (MelderString *p_buffer);   // nullptr = back to normal
 
 class autoMelderDivertInfo {
 	public:
-		autoMelderDivertInfo (MelderString *p_buffer) { Melder_divertInfo (p_buffer); }
-		~autoMelderDivertInfo () { Melder_divertInfo (nullptr); }
+		autoMelderDivertInfo (MelderString *buffer) { previousBuffer = Melder_divertInfo (buffer); }
+		~autoMelderDivertInfo () { Melder_divertInfo (previousBuffer); }
+
+	private:
+		MelderString *previousBuffer;
 };
 
 void Melder_clearInfo ();   // clear the Info window

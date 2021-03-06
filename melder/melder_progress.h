@@ -140,7 +140,7 @@ void * Melder_monitor (double progress, const MelderArg& first, Args... rest) {
 	return MelderProgress::_doMonitor (progress, MelderProgress::_buffer.string);
 }
 
-typedef class structGraphics *Graphics;
+typedef struct structGraphics *Graphics;
 class autoMelderMonitor {
 	Graphics _graphics;
 public:

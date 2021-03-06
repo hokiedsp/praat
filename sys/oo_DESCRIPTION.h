@@ -135,8 +135,8 @@
 #define oo_STRUCTVEC(Type,x,n)  { U"" #x, structwa, Melder_offsetof (ooSTRUCT, x), sizeof (struct struct##Type), U"" #Type, & struct##Type :: s_description, 1, nullptr, U"" #n, nullptr, nullptr },
 
 #define oo_OBJECT(Type,version,x)  { U"" #x, objectwa, Melder_offsetof (ooSTRUCT, x), sizeof (Type), U"" #Type, & theClassInfo_##Type, 0, nullptr, nullptr, nullptr, nullptr },
-#define oo_COLLECTION_OF(Type,x,ItemType,version)  { U"" #x, collectionofwa, Melder_offsetof (ooSTRUCT, x), sizeof (class struct##ItemType), U"" #Type, & theClassInfo_Collection, 0, (conststring32) & theClassInfo_##ItemType, nullptr, nullptr, nullptr },
-#define oo_COLLECTION(Type,x,ItemType,version)  { U"" #x, collectionwa, Melder_offsetof (ooSTRUCT, x), sizeof (class struct##ItemType), U"" #Type, & theClassInfo_##Type, 0, (conststring32) & theClassInfo_##ItemType, nullptr, nullptr, nullptr },
+#define oo_COLLECTION_OF(Type,x,ItemType,version)  { U"" #x, collectionofwa, Melder_offsetof (ooSTRUCT, x), sizeof (struct struct##ItemType), U"" #Type, & theClassInfo_Collection, 0, (conststring32) & theClassInfo_##ItemType, nullptr, nullptr, nullptr },
+#define oo_COLLECTION(Type,x,ItemType,version)  { U"" #x, collectionwa, Melder_offsetof (ooSTRUCT, x), sizeof (struct struct##ItemType), U"" #Type, & theClassInfo_##Type, 0, (conststring32) & theClassInfo_##ItemType, nullptr, nullptr, nullptr },
 #define oo_FILE(x)
 #define oo_DIR(x)
 
@@ -149,7 +149,7 @@
 
 #define oo_DEFINE_CLASS(Class,Parent) \
 	static struct structData_Description the##Class##_description [] = { \
-		{ U"" #Class, inheritwa, 0, sizeof (class struct##Class), U"" #Class, & theClassInfo_##Parent, 0, nullptr, nullptr, nullptr, nullptr },
+		{ U"" #Class, inheritwa, 0, sizeof (struct struct##Class), U"" #Class, & theClassInfo_##Parent, 0, nullptr, nullptr, nullptr, nullptr },
 #define oo_END_CLASS(Class) \
 		{ } \
 	}; \

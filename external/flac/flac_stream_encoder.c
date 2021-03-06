@@ -63,6 +63,12 @@
 #include "flac_private_stream_encoder_framing.h"
 #include "flac_private_window.h"
 
+#ifdef _MSC_VER
+#define off_t __int64
+#define ftello _ftelli64
+#define fseeko _fseeki64
+#endif
+
 #ifndef FLaC__INLINE
 #define FLaC__INLINE
 #endif

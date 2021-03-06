@@ -249,22 +249,22 @@ void structFunctionEditor :: draw () {
 				}
 			}
 			char text8 [100];
-			snprintf (text8, 100, format, value, inverseValue);
+			fmt_snprintf (text8, 100, format, value, inverseValue);
 			autostring32 text = Melder_8to32 (text8);
 			if (Graphics_textWidth (our graphics.get(), text.get()) < right - left) {
 				Graphics_text (our graphics.get(), 0.5 * (left + right), 0.5 * (bottom + top) - verticalCorrection, text.get());
 			} else if (format == our v_format_long()) {
-				snprintf (text8, 100, our v_format_short(), value);
+				fmt_snprintf (text8, 100, our v_format_short(), value);
 				text = Melder_8to32 (text8);
 				if (Graphics_textWidth (our graphics.get(), text.get()) < right - left)
 					Graphics_text (our graphics.get(), 0.5 * (left + right), 0.5 * (bottom + top) - verticalCorrection, text.get());
 			} else {
-				snprintf (text8, 100, our v_format_long(), value);
+				fmt_snprintf (text8, 100, our v_format_long(), value);
 				text = Melder_8to32 (text8);
 				if (Graphics_textWidth (our graphics.get(), text.get()) < right - left) {
 					Graphics_text (our graphics.get(), 0.5 * (left + right), 0.5 * (bottom + top) - verticalCorrection, text.get());
 				} else {
-					snprintf (text8, 100, our v_format_short(), our endSelection - our startSelection);
+					fmt_snprintf (text8, 100, our v_format_short(), our endSelection - our startSelection);
 					text = Melder_8to32 (text8);
 					if (Graphics_textWidth (our graphics.get(), text.get()) < right - left)
 						Graphics_text (our graphics.get(), 0.5 * (left + right), 0.5 * (bottom + top) - verticalCorrection, text.get());

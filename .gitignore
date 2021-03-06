@@ -30,3 +30,6 @@ Praat.exe
 # files created by R scripts in the test folders
 .Rdata
 .Rhistory
+
+# Cmake build direcotry
+build/

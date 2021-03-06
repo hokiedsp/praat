@@ -195,7 +195,7 @@ void Graphics_play (Graphics me, Graphics thee) {
 				#endif
 			}  break;
 			case SET_FONT: {
-				Graphics_setFont (thee, (enum kGraphics_font) get);
+				Graphics_setFont (thee, (enum kGraphics_font) (int) get);
 			} break;
 			case SET_FONT_SIZE: {
 				Graphics_setFontSize (thee, get);
@@ -415,7 +415,7 @@ void Graphics_play (Graphics me, Graphics thee) {
 				Graphics_image_colour (thee, z.all(), x1, x2, y1, y2, minimum, maximum);
 			}  break;
 			case SET_COLOUR_SCALE: {
-				Graphics_setColourScale (thee, (enum kGraphics_colourScale) get);
+				Graphics_setColourScale (thee, (enum kGraphics_colourScale) (int) get);
 			} break;
 			case SET_SPECKLE_SIZE: {
 				Graphics_setSpeckleSize (thee, get);

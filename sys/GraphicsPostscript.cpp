@@ -133,7 +133,7 @@ autoGraphics Graphics_create_postscriptjob (MelderFile file, int resolution, kGr
 	time_t today;
 	my postScript = true, my yIsZeroAtTheTop = false, my languageLevel = 2;
 	my job = true, my eps = false, my printer = false;
-	my d_printf = (int (*)(void *, const char*, ...)) fprintf;
+	my d_vprintf = [](FILE *stream, const char *format, fmt::printf_args args) { return fmt::vfprintf(stream, format, args); };  // my d_printf (int (*)(void *, const char*, ...)) fprintf;
 	Graphics_init (me.get(), resolution);   // virtual resolution; may differ from that of the printer; OK if always 600 dpi
 	my photocopyable = spots == kGraphicsPostscript_spots::PHOTOCOPYABLE;
 	if (my photocopyable) { my spotsDensity = 85; my spotsAngle = 35; }
@@ -176,15 +176,21 @@ autoGraphics Graphics_create_postscriptjob (MelderFile file, int resolution, kGr
 }
 
 #if defined (macintosh)
-static int Eps_postScript_printf (void *stream, const char *format, ... ) {
-	static char theLine [3002];
-	char *p;
-	va_list args;
-	va_start (args, format);
-	vsprintf (theLine, format, args);
-	va_end (args);
-	for (p = theLine; *p != '\0'; p ++) if (*p == '\n') *p = '\r';
-	return fwrite (theLine, sizeof (char), strlen (theLine), reinterpret_cast <FILE *> (stream));
+//static int Eps_postScript_printf (void *stream, const char *format, ... ) {
+//	static char theLine [3002];
+//	char *p;
+//	va_list args;
+//	va_start (args, format);
+//	vsprintf (theLine, format, args);
+//	va_end (args);
+//	for (p = theLine; *p != '\0'; p ++) if (*p == '\n') *p = '\r';
+//	return fwrite (theLine, sizeof (char), strlen (theLine), reinterpret_cast <FILE *> (stream));
+//}
+
+static int Eps_postScript_printf (FILE *stream, const char *format, fmt::printf_args args) {
+	auto s = fmt::vsprintf(format, args);
+	std::replace(s.begin(), s.end(), '\n', '\r');
+	return fmt::fprintf(stream, "%s", s.c_str());
 }
 #endif
 
@@ -196,11 +202,12 @@ autoGraphics Graphics_create_epsfile (MelderFile file, int resolution, enum kGra
 	integer left, right, top, bottom;
 	my postScript = true, my languageLevel = 2;
 	my job = false, my eps = true, my printer = false;
+
 	#if defined (macintosh)
 		/* Replace newlines with carriage returns to be compatible with MS Word 5.1. */
-		my d_printf = Eps_postScript_printf;
+		my d_vprintf = Eps_postScript_printf;
 	#else
-		my d_printf = (int (*)(void *, const char*, ...)) fprintf;
+		my d_vprintf = [](FILE *stream, const char *format, fmt::printf_args args) { return fmt::vfprintf(stream, format, args); };  // my d_printf = (int (*)(void *, const char*, ...)) fprintf;
 	#endif
 	Graphics_init (me.get(), resolution);   // virtual resolution; may differ from that of the printer; OK if always 600 dpi
 	my photocopyable = spots == kGraphicsPostscript_spots::PHOTOCOPYABLE;
@@ -246,7 +253,7 @@ autoGraphics Graphics_create_postscriptprinter () {
 	autoGraphicsPostscript me = Thing_new (GraphicsPostscript);
 	my postScript = true, my languageLevel = 2;
 	my job = false, my eps = false, my printer = true;
-	my d_printf = Printer_postScript_printf;
+	my d_vprintf = Printer_postScript_printf;
 	Graphics_init (me.get(), thePrinter. resolution);   // virtual resolution
 	my photocopyable = thePrinter. spots == kGraphicsPostscript_spots::PHOTOCOPYABLE;
 	if (my photocopyable) { my spotsDensity = 85; my spotsAngle = 35; }

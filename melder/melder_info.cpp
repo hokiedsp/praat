@@ -18,8 +18,8 @@
 
 #include "melder.h"
 
-void MelderInfo::_defaultProc (conststring32 message) {
-	MelderConsole::write (message, false);
+void MelderInfo::_defaultProc (conststring32 message, size_t i) {
+	MelderConsole::write (&message[i], false);
 }
 
 MelderInfo::Proc MelderInfo::_p_currentProc = & MelderInfo::_defaultProc;
@@ -30,9 +30,12 @@ void Melder_setInformationProc (MelderInfo::Proc proc) {
 
 MelderString MelderInfo::_foregroundBuffer;
 MelderString *MelderInfo::_p_currentBuffer = & MelderInfo::_foregroundBuffer;
+size_t MelderInfo::_bufferOffset = 0;
 
 void MelderInfo_open () {
 	MelderString_empty (MelderInfo::_p_currentBuffer);
+	if (MelderInfo::_p_currentBuffer == & MelderInfo::_foregroundBuffer)
+		MelderInfo::_bufferOffset = 0;
 }
 
 void MelderInfo_close () {
@@ -51,14 +54,16 @@ void MelderInfo_close () {
 				MelderConsole::write (U"\n", false);
 		}
 		if (MelderInfo::_p_currentProc != & MelderInfo::_defaultProc)
-			MelderInfo::_p_currentProc (MelderInfo::_p_currentBuffer -> string ? MelderInfo::_p_currentBuffer -> string : U"");
+			MelderInfo::_p_currentProc (MelderInfo::_p_currentBuffer -> string ? MelderInfo::_p_currentBuffer -> string : U"", MelderInfo::_bufferOffset);
+		MelderInfo::_bufferOffset = MelderInfo::_p_currentBuffer->string ? static_cast<size_t>(MelderInfo::_p_currentBuffer->length) : 0;
 	}
 }
 
 void MelderInfo_drain () {
 	if (MelderInfo::_p_currentBuffer == & MelderInfo::_foregroundBuffer) {
 		if (MelderInfo::_p_currentProc != & MelderInfo::_defaultProc)
-			MelderInfo::_p_currentProc (MelderInfo::_p_currentBuffer -> string ? MelderInfo::_p_currentBuffer -> string : U"");
+			MelderInfo::_p_currentProc (MelderInfo::_p_currentBuffer -> string ? MelderInfo::_p_currentBuffer -> string : U"", MelderInfo::_bufferOffset);
+		MelderInfo::_bufferOffset = static_cast<size_t>(MelderInfo::_p_currentBuffer->length);
 	}
 }
 
@@ -72,15 +77,18 @@ void Melder_informationReal (double value, conststring32 units) {
 	MelderInfo_close ();
 }
 
-void Melder_divertInfo (MelderString *p_buffer) {
+MelderString *Melder_divertInfo (MelderString *p_buffer) {
+	MelderString *previousBuffer = p_buffer == & MelderInfo::_foregroundBuffer ? nullptr : MelderInfo::_p_currentBuffer;
 	MelderInfo::_p_currentBuffer = ( p_buffer ? p_buffer : & MelderInfo::_foregroundBuffer );
+	return previousBuffer;
 }
 
 void Melder_clearInfo () {
 	if (MelderInfo::_p_currentBuffer == & MelderInfo::_foregroundBuffer) {
 		MelderString_empty (MelderInfo::_p_currentBuffer);
+		MelderInfo::_bufferOffset = 0;
 		if (MelderInfo::_p_currentProc != & MelderInfo::_defaultProc)
-			MelderInfo::_p_currentProc (U"");
+			MelderInfo::_p_currentProc (U"", 0);
 	}
 }
 

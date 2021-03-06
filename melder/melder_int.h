@@ -24,6 +24,7 @@
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
 #include <stdint.h>
+#include <cmath>
 using byte = unsigned char;
 using int8 = int8_t;
 using int16 = int16_t;
@@ -84,10 +85,11 @@ inline int32 integer_to_int32 (integer n) {
 
 inline integer integer_abs (integer n) {
 	Melder_assert (sizeof (integer) == sizeof (long) || sizeof (integer) == sizeof (long long));
-	if (sizeof (integer) == sizeof (long))
+	return std::abs(n);
+	/* if (sizeof (integer) == sizeof (long))
 		return labs (n);
 	else // sizeof (integer) == sizeof (long long)
-		return llabs (n);
+		return llabs (n); */
 }
 
 struct MelderIntegerRange {

@@ -50,6 +50,7 @@
 	#include <unistd.h>   /* open write close read */
 #else
 	#include <fcntl.h>
+	#include <unistd.h>
 #endif
 
 struct Sound_recordFixedTime_Info {

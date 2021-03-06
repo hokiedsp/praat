@@ -42,7 +42,7 @@ static void menu_cb_writeOneToHtmlFile (Manual me, EDITOR_ARGS_FORM) {
 		MelderString_copy (& buffer, manPages -> pages.at [my visiblePageNumber] -> title.get());
 		char32 *p = buffer.string;
 		while (*p) {
-			if (! isalnum ((int) *p) && *p != U'_')
+			if (! Melder_isAlphanumeric ((int) *p) && *p != U'_')
 				*p = U'_';
 			p ++;
 		}

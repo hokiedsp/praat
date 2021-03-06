@@ -59,6 +59,7 @@ be read by Data_readFromTextFile () and Data_readFromBinaryFile ().
 */
 void praat_init (conststring32 title, int argc, char **argv);
 void praat_run ();
+void praat_testPlatformAssumptions();
 void praat_setStandAloneScriptText (conststring32 text);   // call before praat_init if you want to create a stand-alone application without Objects and Picture window
 extern "C" void praatlib_init ();   // for use in an application that uses Praatlib
 
@@ -157,6 +158,7 @@ GuiMenuItem praat_addMenuCommand_ (conststring32 window, conststring32 menu, con
 typedef struct {
 	ClassInfo klas;   // the class
 	Daata object;   // the instance
+	bool owned;
 	autostring32 name;   // the name of the object as it appears in the List
 	structMelderFile file;   // is this Object associated with a file?
 	integer id;   // the unique number of the object
@@ -202,6 +204,8 @@ void praat_new (autoDaata me, const MelderArg& arg);
 void praat_new (autoDaata me, const MelderArg& arg1, const MelderArg& arg2,
 	const MelderArg& arg3 = U"", const MelderArg& arg4 = U"", const MelderArg& arg5 = U"");
 void praat_newWithFile (autoDaata me, MelderFile file, conststring32 name);
+void praat_newReference (Daata me);
+void praat_newWithFile (Daata me, bool owned, MelderFile file, const char32 *myName);
 void praat_name2 (char32 *name, ClassInfo klas1, ClassInfo klas2);
 
 /* Macros for description of forms (dialog boxes, setting windows).
@@ -375,7 +379,7 @@ void praat_name2 (char32 *name, ClassInfo klas1, ClassInfo klas2);
 		_radio_ = UiForm_addOptionMenu (_dia_.get(), (int *) & enumeratedVariable, nullptr, U"" #enumeratedVariable, labelText, \
 			(int) defaultValue - (int) EnumeratedType::MIN + 1, (int) EnumeratedType::MIN); \
 		for (int ienum = (int) EnumeratedType::MIN; ienum <= (int) EnumeratedType::MAX; ienum ++) \
-			UiOptionMenu_addButton (_radio_, EnumeratedType##_getText ((enum EnumeratedType) ienum));
+			UiOptionMenu_addButton (_radio_, EnumeratedType##_getText ((EnumeratedType) ienum));
 
 #define OPTIONMENU_ENUMSTR(EnumeratedType, enumeratedVariableAsString, labelText, defaultValue)  \
 		static char32 *enumeratedVariableAsString; \
@@ -686,16 +690,19 @@ void praat_name2 (char32 *name, ClassInfo klas1, ClassInfo klas2);
 #define GRAPHICS_COUPLE_AND_ONE_END  END_NO_NEW_DATA
 
 #define MOVIE_ONE(klas,title,width,height)  \
+	if (theCurrentPraatApplication -> batch) Melder_throw (U"Cannot play a movie from batch."); \
 	Graphics graphics = Movie_create (title, width, height); \
 	FIND_ONE (klas)
 #define MOVIE_ONE_END  END_NO_NEW_DATA
 
 #define MOVIE_TWO(klas1,klas2,title,width,height)  \
+	if (theCurrentPraatApplication -> batch) Melder_throw (U"Cannot play a movie from batch."); \
 	Graphics graphics = Movie_create (title, width, height); \
 	FIND_TWO (klas1, klas2)
 #define MOVIE_TWO_END  END_NO_NEW_DATA
 
 #define MOVIE_THREE(klas1,klas2,klas3,title,width,height)  \
+	if (theCurrentPraatApplication -> batch) Melder_throw (U"Cannot play a movie from batch."); \
 	Graphics graphics = Movie_create (title, width, height); \
 	FIND_THREE (klas1, klas2, klas3)
 #define MOVIE_THREE_END  END_NO_NEW_DATA

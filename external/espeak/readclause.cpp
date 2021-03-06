@@ -25,7 +25,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 #include <wchar.h>
 #include <wctype.h>
 
@@ -348,7 +350,7 @@ static espeak_ng_STATUS LoadSoundFile(const char *fname, int index, espeak_ng_ER
 			fclose(f);
 			f = NULL;
 
-#if 1
+#if defined(UNIX)
 			int fd_temp;
 			strcpy(fname_temp, "/tmp/espeakXXXXXX");
 			if ((fd_temp = mkstemp(fname_temp)) >= 0)

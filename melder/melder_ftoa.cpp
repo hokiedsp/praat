@@ -160,11 +160,11 @@ const char * Melder8_double (double value) noexcept {
 		return "--undefined--";
 	if (++ ibuffer == NUMBER_OF_BUFFERS)
 		ibuffer = 0;
-	sprintf (buffers8 [ibuffer], "%.15g", value);
-	if (strtod (buffers8 [ibuffer], nullptr) != value) {
-		sprintf (buffers8 [ibuffer], "%.16g", value);
-		if (strtod (buffers8 [ibuffer], nullptr) != value)
-			sprintf (buffers8 [ibuffer], "%.17g", value);
+	fmt_sprintf (buffers8 [ibuffer], "%.15g", value);
+	if (Melder8_strtod (buffers8 [ibuffer], nullptr) != value) {
+		fmt_sprintf (buffers8 [ibuffer], "%.16g", value);
+		if (Melder8_strtod (buffers8 [ibuffer], nullptr) != value)
+			fmt_sprintf (buffers8 [ibuffer], "%.17g", value);
 	}
 	return buffers8 [ibuffer];
 }
@@ -177,7 +177,7 @@ const char * Melder8_single (double value) noexcept {
 	if (isundef (value))
 		return "--undefined--";
 	if (++ ibuffer == NUMBER_OF_BUFFERS) ibuffer = 0;
-	sprintf (buffers8 [ibuffer], "%.9g", value);
+	fmt_sprintf (buffers8 [ibuffer], "%.9g", value);
 	return buffers8 [ibuffer];
 }
 conststring32 Melder_single (double value) noexcept {
@@ -190,7 +190,7 @@ const char * Melder8_half (double value) noexcept {
 		return "--undefined--";
 	if (++ ibuffer == NUMBER_OF_BUFFERS)
 		ibuffer = 0;
-	sprintf (buffers8 [ibuffer], "%.4g", value);
+	fmt_sprintf (buffers8 [ibuffer], "%.4g", value);
 	return buffers8 [ibuffer];
 }
 conststring32 Melder_half (double value) noexcept {
@@ -208,7 +208,8 @@ const char * Melder8_fixed (double value, integer precision) noexcept {
 	if (precision > 60)
 		precision = 60;
 	int minimumPrecision = - (int) floor (log10 (fabs (value)));
-	int n = snprintf (buffers8 [ibuffer], MAXIMUM_NUMERIC_STRING_LENGTH + 1, "%.*f",
+
+	int n = fmt_snprintf (buffers8 [ibuffer], MAXIMUM_NUMERIC_STRING_LENGTH + 1, "%.*f",
 		(int) (minimumPrecision > precision ? minimumPrecision : precision), value);
 	Melder_assert (n > 0);
 	Melder_assert (n <= MAXIMUM_NUMERIC_STRING_LENGTH);
@@ -231,7 +232,8 @@ const char * Melder8_fixedExponent (double value, integer exponent, integer prec
 		precision = 60;
 	value /= factor;
 	int minimumPrecision = - (int) floor (log10 (fabs (value)));
-	int n = snprintf (buffers8 [ibuffer], MAXIMUM_NUMERIC_STRING_LENGTH + 1, "%.*fE%d",
+
+	int n = fmt_snprintf (buffers8 [ibuffer], MAXIMUM_NUMERIC_STRING_LENGTH + 1, "%.*fE%d",
 		(int) (minimumPrecision > precision ? minimumPrecision : precision), value, (int) exponent);
 	Melder_assert (n > 0);
 	Melder_assert (n <= MAXIMUM_NUMERIC_STRING_LENGTH);
@@ -253,7 +255,7 @@ const char * Melder8_percent (double value, integer precision) noexcept {
 		precision = 60;
 	value *= 100.0;
 	int minimumPrecision = - (int) floor (log10 (fabs (value)));
-	int n = snprintf (buffers8 [ibuffer], MAXIMUM_NUMERIC_STRING_LENGTH + 1, "%.*f%%",
+	int n = fmt_snprintf (buffers8 [ibuffer], MAXIMUM_NUMERIC_STRING_LENGTH + 1, "%.*f%%",
 		(int) (minimumPrecision > precision ? minimumPrecision : precision), value);
 	Melder_assert (n > 0);
 	Melder_assert (n <= MAXIMUM_NUMERIC_STRING_LENGTH);
@@ -272,7 +274,7 @@ const char * Melder8_hexadecimal (integer value, integer precision) noexcept {
 	if (precision > 60)
 		precision = 60;
 	integer integerValue = Melder_iround (value);
-	int n = snprintf (buffers8 [ibuffer], MAXIMUM_NUMERIC_STRING_LENGTH + 1, "%.*llX",
+	int n = fmt_snprintf (buffers8 [ibuffer], MAXIMUM_NUMERIC_STRING_LENGTH + 1, "%.*llX",
 		(int) precision, (unsigned long long) integerValue);
 	Melder_assert (n > 0);
 	Melder_assert (n <= MAXIMUM_NUMERIC_STRING_LENGTH);
@@ -288,21 +290,21 @@ const char * Melder8_dcomplex (dcomplex value) noexcept {
 		return "--undefined--";
 	if (++ ibuffer == NUMBER_OF_BUFFERS)
 		ibuffer = 0;
-	sprintf (buffers8 [ibuffer], "%.15g", value.real());
-	if (strtod (buffers8 [ibuffer], nullptr) != value.real()) {
-		sprintf (buffers8 [ibuffer], "%.16g", value.real());
-		if (strtod (buffers8 [ibuffer], nullptr) != value.real())
-			sprintf (buffers8 [ibuffer], "%.17g", value.real());
+	fmt_sprintf (buffers8 [ibuffer], "%.15g", value.real());
+	if (Melder8_strtod (buffers8 [ibuffer], nullptr) != value.real()) {
+		fmt_sprintf (buffers8 [ibuffer], "%.16g", value.real());
+		if (Melder8_strtod (buffers8 [ibuffer], nullptr) != value.real())
+			fmt_sprintf (buffers8 [ibuffer], "%.17g", value.real());
 	}
 	char *p = buffers8 [ibuffer] + strlen (buffers8 [ibuffer]);
 	*p = ( value.imag() < 0.0 ? '-' : '+' );
 	value. imag (fabs (value.imag()));
 	++ p;
-	sprintf (p, "%.15g", value.imag());
-	if (strtod (p, nullptr) != value.imag()) {
-		sprintf (p, "%.16g", value.imag());
-		if (strtod (p, nullptr) != value.imag())
-			sprintf (p, "%.17g", value.imag());
+	fmt_sprintf (p, "%.15g", value.imag());
+	if (Melder8_strtod (p, nullptr) != value.imag()) {
+		fmt_sprintf (p, "%.16g", value.imag());
+		if (Melder8_strtod (p, nullptr) != value.imag())
+			fmt_sprintf (p, "%.17g", value.imag());
 	}
 	strcat (buffers8 [ibuffer], "i");
 	return buffers8 [ibuffer];
@@ -317,10 +319,10 @@ const char * Melder8_scomplex (dcomplex value) noexcept {
 		return "--undefined--";
 	if (++ ibuffer == NUMBER_OF_BUFFERS)
 		ibuffer = 0;
-	sprintf (buffers8 [ibuffer], "%.9g", value.real());
+	fmt_sprintf (buffers8 [ibuffer], "%.9g", value.real());
 	char *p = buffers8 [ibuffer] + strlen (buffers8 [ibuffer]);
 	*p = ( value.imag() < 0.0 ? '-' : '+' );
-	sprintf (++ p, "%.9g", fabs (value.imag()));
+	fmt_sprintf (++ p, "%.9g", fabs (value.imag()));
 	strcat (buffers8 [ibuffer], "i");
 	return buffers8 [ibuffer];
 }
@@ -378,11 +380,11 @@ const char * Melder8_naturalLogarithm (double lnNumber) noexcept {
 			remainder10 *= 10.0;
 			ceiling --;
 		}
-		sprintf (buffers8 [ibuffer], "%.15g", remainder10);
-		if (strtod (buffers8 [ibuffer], nullptr) != remainder10) {
-			sprintf (buffers8 [ibuffer], "%.16g", remainder10);
-			if (strtod (buffers8 [ibuffer], nullptr) != remainder10)
-				sprintf (buffers8 [ibuffer], "%.17g", remainder10);
+		fmt_sprintf (buffers8 [ibuffer], "%.15g", remainder10);
+		if (Melder8_strtod (buffers8 [ibuffer], nullptr) != remainder10) {
+			fmt_sprintf (buffers8 [ibuffer], "%.16g", remainder10);
+			if (Melder8_strtod (buffers8 [ibuffer], nullptr) != remainder10)
+				fmt_sprintf (buffers8 [ibuffer], "%.17g", remainder10);
 		}
 		sprintf (buffers8 [ibuffer] + strlen (buffers8 [ibuffer]), "e-%ld", (long_not_integer) ceiling);
 	} else {
@@ -420,29 +422,29 @@ const char * Melder8_colour (MelderColour colour) noexcept {
 	char *p = & buffers8 [ibuffer] [0];
 	strcpy (p, "{");
 	p ++;
-	sprintf (p, "%.15g", colour.red);
-	if (strtod (p, nullptr) != colour.red) {
-		sprintf (p, "%.16g", colour.red);
-		if (strtod (p, nullptr) != colour.red)
-			sprintf (p, "%.17g", colour.red);
+	fmt_sprintf (p, "%.15g", colour.red);
+	if (Melder8_strtod (p, nullptr) != colour.red) {
+		fmt_sprintf (p, "%.16g", colour.red);
+		if (Melder8_strtod (p, nullptr) != colour.red)
+			fmt_sprintf (p, "%.17g", colour.red);
 	}
 	p += strlen (p);
 	strcpy (p, ",");
 	p ++;
-	sprintf (p, "%.15g", colour.green);
-	if (strtod (p, nullptr) != colour.green) {
-		sprintf (p, "%.16g", colour.green);
-		if (strtod (p, nullptr) != colour.green)
-			sprintf (p, "%.17g", colour.green);
+	fmt_sprintf (p, "%.15g", colour.green);
+	if (Melder8_strtod (p, nullptr) != colour.green) {
+		fmt_sprintf (p, "%.16g", colour.green);
+		if (Melder8_strtod (p, nullptr) != colour.green)
+			fmt_sprintf (p, "%.17g", colour.green);
 	}
 	p += strlen (p);
 	strcpy (p, ",");
 	p ++;
-	sprintf (p, "%.15g", colour.blue);
-	if (strtod (p, nullptr) != colour.blue) {
-		sprintf (p, "%.16g", colour.blue);
-		if (strtod (p, nullptr) != colour.blue)
-			sprintf (p, "%.17g", colour.blue);
+	fmt_sprintf (p, "%.15g", colour.blue);
+	if (Melder8_strtod (p, nullptr) != colour.blue) {
+		fmt_sprintf (p, "%.16g", colour.blue);
+		if (Melder8_strtod (p, nullptr) != colour.blue)
+			fmt_sprintf (p, "%.17g", colour.blue);
 	}
 	p += strlen (p);
 	strcpy (p, "}");

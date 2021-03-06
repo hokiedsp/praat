@@ -24,6 +24,8 @@
 */
 bool Melder_isStringNumeric (conststring32 string) noexcept;
 
+double Melder8_strtod(const char *str, char **end_str = nullptr) noexcept;
+
 /**
 	Turn a string into a floating-point number.
 	Examples:

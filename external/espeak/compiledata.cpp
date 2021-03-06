@@ -29,7 +29,9 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <unistd.h>
+#ifndef _MSC_VER
+	#include <unistd.h>
+#endif
 
 #include "espeak_ng.h"
 #include "speak_lib.h"
@@ -1214,7 +1216,7 @@ static int LoadWavefile(FILE *f, const char *fname)
 
 		failed = 0;
 
-#if 1
+#if defined(UNIX)
 		int fd_temp;
 		strcpy(fname_temp, "/tmp/espeakXXXXXX");
 		if ((fd_temp = mkstemp(fname_temp)) >= 0)

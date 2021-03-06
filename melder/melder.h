@@ -34,6 +34,12 @@
 #include <new>   // placement new
 #include <algorithm>   // std::min
 
+#ifdef _MSC_VER
+	#define off_t __int64
+	#define ftello _ftelli64
+	#define fseeko _fseeki64
+#endif
+
 /*
 	Law of Demeter for class functions defined outside class definition.
 */

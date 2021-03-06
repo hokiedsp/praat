@@ -56,6 +56,12 @@
 #include "flac_private_md5.h"
 #include "flac_private_memory.h"
 
+#ifdef _MSC_VER
+#define off_t __int64
+#define ftello _ftelli64
+#define fseeko _fseeki64
+#endif
+
 #ifdef max
 #undef max
 #endif

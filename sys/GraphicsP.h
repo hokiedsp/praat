@@ -22,6 +22,10 @@
 #include "Gui.h"
 
 #if defined (_WIN32)
+	// Workaround after defining NOMINMAX
+	// See https://stackoverflow.com/questions/4913922/possible-problems-with-nominmax-on-visual-c/4914108#4914108
+	#include <algorithm>
+	namespace Gdiplus { using std::min; using std::max; }
 	#include <windowsx.h>
 	#include <gdiplus.h>
 #endif
@@ -137,7 +141,12 @@ Thing_define (GraphicsScreen, Graphics) {
 
 Thing_define (GraphicsPostscript, Graphics) {
 	FILE *d_file;
-	int (*d_printf) (void *stream, const char *format, ...);
+	// int (*d_printf) (void *stream, const char *format, ...);
+	int (*d_vprintf)(FILE *stream, const char *format, fmt::printf_args args);
+	template <typename... Args>
+	int d_printf(FILE *stream, const char *format, Args &&... args) {
+		return d_vprintf(stream, format, fmt::make_printf_args(args...));
+	}
 	int languageLevel;
 	int photocopyable, spotsDensity, spotsAngle;
 	bool loadedXipa, useSilipaPS, landscape, includeFonts;

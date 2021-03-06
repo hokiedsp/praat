@@ -18,6 +18,41 @@
 
 #include "melder.h"
 
+#include <iostream>
+#include <locale>
+
+namespace {
+
+struct array_istreambuf : public std::streambuf {
+	explicit array_istreambuf(const char *in, const char *end) {
+		auto ccin = const_cast<char *>(in);
+		auto ccend = const_cast<char *>(end);
+		setg(ccin, ccin, ccend);
+	}
+
+	using std::streambuf::gptr;
+};
+
+double strtod_c(const char *s, const char *r, char **e) {
+	static auto cLocale = std::locale::classic();
+	static auto &cNumget = std::use_facet<std::num_get<char>>(cLocale);
+	static auto &cCtype = std::use_facet<std::ctype<char>>(cLocale);
+	static std::ios format(nullptr);  // Wake me up when Praat gets thread-safe. But I'd hope that that global array of buffers will also have changed by then.
+	std::ios_base::iostate err = std::ios_base::goodbit;
+
+	const char *p = s;
+	while (cCtype.is(std::ctype_base::space, *p)) ++p;
+
+	array_istreambuf buffer(p, r);
+	double value = 0.0;
+	cNumget.get(&buffer, nullptr, format, err, value);
+
+	if (e) *e = ((err & ~std::ios_base::eofbit) == std::ios_base::goodbit ? buffer.gptr() : const_cast<char *>(s));
+	return value;
+}
+
+}
+
 /**
 	Assume that the next thing that follows is a numeric string,
 	and find the end of it.
@@ -105,6 +140,12 @@ bool Melder_isStringNumeric (conststring32 string) noexcept {
 	return true;
 }
 
+double Melder8_strtod(const char *str, char **end_str /*= nullptr*/) noexcept {
+	// findEndOfNumericString(str) because https://bugs.llvm.org/show_bug.cgi?id=17782
+	// See https://github.com/tardate/LittleCodingKata/blob/master/cpp/DoubleTrouble/README.md
+	return strtod_c(str, findEndOfNumericString(str), end_str);
+}
+
 double Melder_a8tof (conststring8 string) noexcept {
 	if (! string)
 		return undefined;
@@ -113,7 +154,7 @@ double Melder_a8tof (conststring8 string) noexcept {
 	if (! weFoundANumber)
 		return undefined;
 	Melder_assert (p - & string [0] > 0);
-	return p [-1] == '%' ? 0.01 * strtod (string, nullptr) : strtod (string, nullptr);
+	return p [-1] == '%' ? 0.01 * strtod_c (string, p, nullptr) : strtod_c (string, p, nullptr);
 }
 
 double Melder_atof (conststring32 string) noexcept {

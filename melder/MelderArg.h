@@ -18,7 +18,7 @@
  * along with this work. If not, see <http://www.gnu.org/licenses/>.
  */
 
-typedef class structThing *Thing;   // forward declaration
+typedef struct structThing *Thing;   // forward declaration
 conststring32 Thing_messageName (Thing me);
 
 struct MelderArg {

@@ -27,6 +27,10 @@
 	}
 #elif gdi
 	//#include "winport_on.h"
+	// Workaround after defining NOMINMAX
+	// See https://stackoverflow.com/questions/4913922/possible-problems-with-nominmax-on-visual-c/4914108#4914108
+	#include <algorithm>
+	namespace Gdiplus { using std::min; using std::max; }
 	#include <gdiplus.h>
 	//#include "winport_off.h"
 	//using namespace Gdiplus;
@@ -449,7 +453,9 @@ autoGraphics Graphics_create_xmdrawingarea (GuiDrawingArea w) {
 	#endif
 
 	my d_drawingArea = static_cast <GuiDrawingArea> (w);   /* Now !!!!!!!!!! */
-	Melder_assert (my d_drawingArea -> d_widget);
+	#ifndef NO_GRAPHICS
+		Melder_assert (my d_drawingArea -> d_widget);
+	#endif
 	my screen = true;
 	my yIsZeroAtTheTop = true;
 	#if cairo
@@ -468,6 +474,9 @@ autoGraphics Graphics_create_xmdrawingarea (GuiDrawingArea w) {
 	#elif quartz
 		Graphics_init (me.get(), Gui_getResolution (nullptr));
 		GraphicsScreen_init (me.get(), my d_drawingArea -> d_widget, my d_drawingArea -> d_widget);
+	#else
+		Graphics_init (me.get(), Gui_getResolution (nullptr));
+		GraphicsScreen_init (me.get(), nullptr, nullptr);
 	#endif
 
 	Melder_assert (w -> numberOfGraphicses < structGuiDrawingArea :: MAXIMUM_NUMBER_OF_GRAPHICSES);

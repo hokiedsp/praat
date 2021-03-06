@@ -1196,7 +1196,7 @@ DO
 	CONVERT_TWO_END (my name.get(), U"_", your name.get())
 }
 
-DIRECT (hint_Discriminant_TableOfReal_to_ClassificationTable) {
+DIRECT (HINT_Discriminant_TableOfReal_to_ClassificationTable) {
 	Melder_information (U"You can use the Discriminant as a classifier by \nselecting a Discriminant and a TableOfReal object together.");
 END }
 
@@ -1371,8 +1371,8 @@ DO
 	NUMBER_ONE_END (U" (confidence ellipse area)")
 }
 
-FORM (REAL_Discriminant_getLnDeterminant_group, U"Discriminant: Get determinant (group)", U"Discriminant: Get determinant (group)...")
-	SENTENCE (groupLabel, U"Group label", U"") {
+FORM (REAL_Discriminant_getLnDeterminant_group, U"Discriminant: Get determinant (group)", U"Discriminant: Get determinant (group)...") {
+	SENTENCE (groupLabel, U"Group label", U"")
 	OK
 DO
 	NUMBER_ONE (Discriminant)
@@ -6462,7 +6462,7 @@ DO
 	NUMBER_ONE_END (U" (concentation ellipse area)")
 }
 
-DIRECT (NUMBER_SSCP_getDegreesOfFreedom) {
+DIRECT (REAL_SSCP_getDegreesOfFreedom) {
 	NUMBER_ONE (SSCP)
 		double result = SSCP_getDegreesOfFreedom (me);
 	NUMBER_ONE_END (U" (degrees of freedom)")
@@ -6746,8 +6746,7 @@ DO
 }
 
 DIRECT (NEW_SVD_extractLeftSingularVectors) {
-	LOOP {
-		iam (SVD);
+	CONVERT_EACH (SVD);
 		autoTableOfReal result = SVD_extractLeftSingularVectors (me);
 	CONVERT_EACH_END (my name.get(), U"_lsv")
 }
@@ -8093,7 +8092,7 @@ static void praat_Spline_init (ClassInfo klas) {
 static void praat_SSCP_query_init (ClassInfo klas) {
 	praat_addAction1 (klas, 1, U"-- statistics --", U"Get value...", 1, 0);
 	praat_addAction1 (klas, 1, U"Get number of observations", U"-- statistics --", 1, INTEGER_SSCP_getNumberOfObservations);
-	praat_addAction1 (klas, 1, U"Get degrees of freedom", U"Get number of observations", 1, NUMBER_SSCP_getDegreesOfFreedom);
+	praat_addAction1 (klas, 1, U"Get degrees of freedom", U"Get number of observations", 1, REAL_SSCP_getDegreesOfFreedom);
 	praat_addAction1 (klas, 1, U"Get centroid element...", U"Get degrees of freedom", 1, REAL_SSCP_getCentroidElement);
 	praat_addAction1 (klas, 1, U"Get ln(determinant)", U"Get centroid element...", 1, REAL_SSCP_getLnDeterminant);
 }
@@ -8429,7 +8428,7 @@ void praat_uvafon_David_init () {
 		praat_addAction1 (classDiscriminant, 0, U"Extract group labels", nullptr, 1, NEW_Discriminant_extractGroupLabels);
 		praat_addAction1 (classDiscriminant, 0, U"Extract Eigen", nullptr, 1, NEW_Discriminant_extractEigen);
 
-	praat_addAction1 (classDiscriminant , 0, U"& TableOfReal: To ClassificationTable?", nullptr, 0, hint_Discriminant_TableOfReal_to_ClassificationTable);
+	praat_addAction1 (classDiscriminant , 0, U"& TableOfReal: To ClassificationTable?", nullptr, 0, HINT_Discriminant_TableOfReal_to_ClassificationTable);
 
 	/*		praat_addAction1 (classDiscriminant, 1, U"Extract coefficients...", nullptr, 1, DO_Discriminant_extractCoefficients);*/
 

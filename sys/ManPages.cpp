@@ -547,12 +547,12 @@ static void writeParagraphsAsHtml (ManPages me, MelderFile file, constvector <st
 
 		if (isListItem || isTag || isDefinition) {
 			if (! inList) {
-				ul = ( isListItem && (p [0] == U'•' || (p [0] == U'\\' && p [1] == U'b' && p [2] == U'u')) );
+				ul = ( isListItem && (p [0] == U'\u2022' || (p [0] == U'\\' && p [1] == U'b' && p [2] == U'u')) ); // \u2022 is •
 				MelderString_append (buffer, ul ? U"<ul>\n" : U"<dl>\n");
 				inList = true;
 			}
 			if (ul) {
-				if (p [0] == U'•'  && p [1] == U' ')
+				if (p [0] == U'\u2022'  && p [1] == U' ') // \u2022 is •
 					p += 1;
 				if (p [0] == U'\\' && p [1] == U'b' && p [2] == U'u' && p [3] == U' ')
 					p += 3;

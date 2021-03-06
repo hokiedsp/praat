@@ -183,7 +183,11 @@
 /* #undef USE_ALLOCA */
 
 /* Use C99 variable-size arrays */
+#ifndef _MSC_VER
 #define VAR_ARRAYS 1
+#else
+#define USE_ALLOCA 1
+#endif
 
 /* Define to empty if `const' does not conform to ANSI C. */
 /* #undef const */
@@ -197,7 +201,9 @@
 /* Define to the equivalent of the C99 'restrict' keyword, or to
    nothing if this is not supported.  Do not define if restrict is
    supported directly.  */
+#ifndef _MSC_VER
 #define restrict __restrict
+#endif
 /* Work around a bug in Sun C++: it does not support _Restrict or
    __restrict__, even though the corresponding Sun C compiler ends up with
    "#define restrict _Restrict" or "#define restrict __restrict__" in the

@@ -18,6 +18,7 @@
 
 #include "melder.h"
 #include <stdarg.h>
+#include <limits>
 #if defined (UNIX) || defined (macintosh)
 	#include <sys/types.h>
 	#include <sys/stat.h>
@@ -326,9 +327,11 @@ static void praat_remove (int iobject, bool removeVisibly) {
 	MelderFile_setToNull (& theCurrentPraatObjects -> list [iobject]. file);
 	trace (U"free name");
 	theCurrentPraatObjects -> list [iobject]. name. reset();
-	trace (U"forget object");
-	forget (theCurrentPraatObjects -> list [iobject]. object);   // note: this might save a file-based object to file
-	trace (U"forgotten object");
+	if (theCurrentPraatObjects -> list [iobject]. owned) {
+		trace (U"forget object");
+		forget (theCurrentPraatObjects -> list[iobject]. object);   // note: this might save a file-based object to file
+		trace (U"forgotten object");
+	}
 }
 
 void praat_cleanUpName (char32 *name) {
@@ -342,23 +345,26 @@ void praat_cleanUpName (char32 *name) {
 
 /***** objects + commands *****/
 
-static void praat_new_unpackCollection (autoCollection me, const char32* myName) {
+static void praat_new_unpackCollection (Collection me, bool owned, const char32* myName) {
 	for (integer idata = 1; idata <= my size; idata ++) {
-		autoDaata object;
-		object. adoptFromAmbiguousOwner ((Daata) my at [idata]);
-		my at [idata] = nullptr;   // disown; once the elements are autoThings, the move will handle this
-		const conststring32 name = ( object -> name ? object -> name.get() : myName );
+		Melder_assert (my _ownItems);
+		Daata object = (Daata) my at [idata];
+		if (owned)
+			my at [idata] = nullptr;   // disown
+		conststring32 name = ( object -> name ? object -> name.get() : myName );
 		Melder_assert (name);
-		praat_new (object.move(), name);   // recurse
+		praat_newWithFile (object, owned, nullptr, name);   // recurse
 	}
+	if (owned)
+		forget (me);
 }
 
-void praat_newWithFile (autoDaata me, MelderFile file, conststring32 myName) {
+void praat_newWithFile (Daata me, bool owned, MelderFile file, conststring32 myName) {
 	if (! me)
 		Melder_throw (U"No object was put into the list.");
 
 	if (my classInfo == classCollection) {
-		praat_new_unpackCollection (me.static_cast_move<structCollection>(), myName);
+		praat_new_unpackCollection (static_cast<Collection>(me), owned, myName);
 		return;
 	}
 
@@ -375,13 +381,13 @@ void praat_newWithFile (autoDaata me, MelderFile file, conststring32 myName) {
 		MelderString_copy (& givenName, my name && my name [0] ? my name.get() : U"untitled");
 	}
 	praat_cleanUpName (givenName.string);
-	MelderString_append (& name, Thing_className (me.get()), U" ", givenName.string);
+	MelderString_append (& name, Thing_className (me), U" ", givenName.string);
 
 	if (theCurrentPraatObjects -> n == praat_MAXNUM_OBJECTS) {
 		//forget (me);
 		Melder_throw (U"The Object Window cannot contain more than ", praat_MAXNUM_OBJECTS, U" objects. You could remove some objects.");
 	}
-		
+
 	int IOBJECT = ++ theCurrentPraatObjects -> n;
 	Melder_assert (FULL_NAME == nullptr);
 	theCurrentPraatObjects -> list [IOBJECT]. name = Melder_dup_f (name.string);   // all right to crash if out of memory
@@ -394,7 +400,8 @@ void praat_newWithFile (autoDaata me, MelderFile file, conststring32 myName) {
 			theCurrentPraatObjects -> n
 		);
 	CLASS = my classInfo;
-	OBJECT = me.releaseToAmbiguousOwner();   // FIXME: should be move()
+	OBJECT = me;
+	theCurrentPraatObjects -> list [IOBJECT]. owned = owned;
 	SELECTED = false;
 	for (int ieditor = 0; ieditor < praat_MAXNUM_EDITORS; ieditor ++)
 		EDITOR [ieditor] = nullptr;
@@ -406,6 +413,10 @@ void praat_newWithFile (autoDaata me, MelderFile file, conststring32 myName) {
 	theCurrentPraatObjects -> list [IOBJECT]. isBeingCreated = true;
 	Thing_setName (OBJECT, givenName.string);
 	theCurrentPraatObjects -> totalBeingCreated ++;
+}
+
+void praat_newWithFile (autoDaata me, MelderFile file, const char32 *myName) {
+	praat_newWithFile(me.releaseToAmbiguousOwner(), true, file, myName);
 }
 
 static MelderString thePraatNewName;
@@ -421,6 +432,10 @@ void praat_new (autoDaata me,
 {
 	MelderString_copy (& thePraatNewName, arg1._arg, arg2._arg, arg3._arg, arg4._arg, arg5._arg);
 	praat_new (me.move(), thePraatNewName.string);
+}
+
+void praat_newReference (Daata me) {
+	praat_newWithFile (me, false, nullptr, U"");
 }
 
 void praat_updateSelection () {
@@ -1081,7 +1096,10 @@ static void installPraatShellPreferences () {
 }
 
 extern "C" void praatlib_init () {
-	setThePraatLocale ();   // FIXME: don't use the global locale
+	// Fix issue #11 by not setting the global locale
+	// "Extension modules should never call setlocale(), except to find out what the current locale is."
+	// https://docs.python.org/3.7/library/locale.html#for-extension-writers-and-programs-that-embed-python
+	// setThePraatLocale ();   // FIXME: don't use the global locale
 	Melder_init ();
 	Melder_rememberShellDirectory ();
 	installPraatShellPreferences ();   // needed in the library, because this sets the defaults
@@ -1101,6 +1119,12 @@ extern "C" void praatlib_init () {
 	praat_addMenus (nullptr);
 	praat_addFixedButtons (nullptr);
 	praat_addMenus2 ();
+
+	// Added to registration of Praat commands by init
+	Data_setPublishProc (publishProc);
+	theCurrentPraatApplication -> manPages = ManPages_create ().releaseToAmbiguousOwner();
+
+	if (! praatP.dontUsePictureWindow) praat_picture_init ();
 }
 
 static void injectMessageAndInformationProcs (GuiWindow parent) {
@@ -1348,7 +1372,7 @@ void praat_init (conststring32 title, int argc, char **argv)
 				Melder_clearError ();
 			}
 		}
-	#elif defined (_WIN32)
+	#elif motif && defined (_WIN32)
 		if (! Melder_batch)
 			motif_win_setUserMessageCallback (cb_userMessage);
 	#elif defined (macintosh)
@@ -1615,6 +1639,122 @@ void praat_run () {
 		}
 	}
 
+	praat_testPlatformAssumptions();
+
+	if (Melder_batch) {
+		if (thePraatStandAloneScriptText) {
+			try {
+				praat_executeScriptFromText (thePraatStandAloneScriptText);
+				praat_exit (0);
+			} catch (MelderError) {
+				Melder_flushError (praatP.title.get(), U": stand-alone script session interrupted.");
+				praat_exit (-1);
+			}
+		} else if (praatP.hasCommandLineInput) {
+			try {
+				praat_executeCommandFromStandardInput (praatP.title.get());
+				praat_exit (0);
+			} catch (MelderError) {
+				Melder_flushError (praatP.title.get(), U": command line session interrupted.");
+				praat_exit (-1);
+			}
+		} else {
+			try {
+				//Melder_casual (U"Script <<", theCurrentPraatApplication -> batchName.string, U">>");
+				praat_executeScriptFromFileNameWithArguments (theCurrentPraatApplication -> batchName.string);
+				praat_exit (0);
+			} catch (MelderError) {
+				Melder_flushError (praatP.title.get(), U": script command <<",
+					theCurrentPraatApplication -> batchName.string, U">> not completed.");
+				praat_exit (-1);
+			}
+		}
+	} else /* GUI */ {
+		if (! praatP.ignorePreferenceFiles) {
+			trace (U"reading the added script buttons");
+			/* Each line separately: every error should be ignored.
+			 */
+			praatP.phase = praat_READING_BUTTONS;
+			{// scope
+				autostring32 buttons;
+				try {
+					buttons = MelderFile_readText (& buttonsFile);
+				} catch (MelderError) {
+					Melder_clearError ();
+				}
+				if (buttons) {
+					char32 *line = buttons.get();
+					for (;;) {
+						char32 *newline = str32chr (line, U'\n');
+						if (newline) *newline = U'\0';
+						try {
+							praat_executeCommand (nullptr, line);
+						} catch (MelderError) {
+							Melder_clearError ();   // ignore this line, but not necessarily the next
+						}
+						if (! newline)
+							break;
+						line = newline + 1;
+					}
+				}
+			}
+		}
+
+		trace (U"sorting the commands");
+		trace (U"locale is ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+		praat_sortMenuCommands ();
+		praat_sortActions ();
+
+		praatP.phase = praat_HANDLING_EVENTS;
+
+		if (praatP.userWantsToOpen) {
+			for (; praatP.argumentNumber < praatP.argc; praatP.argumentNumber ++) {
+				//Melder_casual (U"File to open <<", Melder_peek8to32 (theArgv [iarg]), U">>");
+				/*
+					The use double-clicked a Praat file,
+					or dropped a file on the Praat icon,
+					while Praat was not yet running.
+				*/
+				autostring32 text = Melder_dup (Melder_cat (U"Read from file... ",
+															Melder_peek8to32 (praatP.argv [praatP.argumentNumber])));
+				try {
+					praat_executeScriptFromText (text.get());
+				} catch (MelderError) {
+					Melder_flushError ();
+				}
+			}
+		}
+
+		#if gtk
+			//gtk_widget_add_events (G_OBJECT (theCurrentPraatApplication -> topShell), GDK_ALL_EVENTS_MASK);
+			trace (U"install GTK key snooper");
+			trace (U"locale is ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+			//g_signal_newv ("SENDPRAAT", G_TYPE_FROM_CLASS (gobject_class), G_SIGNAL_RUN_LAST, NULL, NULL, NULL, NULL, G_TYPE_NONE, 0, NULL);
+			g_signal_connect (G_OBJECT (theCurrentPraatApplication -> topShell -> d_gtkWindow), "property-notify-event",
+					G_CALLBACK (cb_userMessage), nullptr);
+			signal (SIGUSR1, cb_sigusr1);
+			gdk_window_add_filter (NULL, sendpraatEventFilter, NULL);
+			gtk_key_snooper_install (theKeySnooper, 0);
+			trace (U"start the GTK event loop");
+			trace (U"locale is ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+			gtk_main ();
+		#elif motif
+			for (;;) {
+				XEvent event;
+				GuiNextEvent (& event);
+				XtDispatchEvent (& event);
+			}
+		#elif cocoa
+			[NSApp run];
+		#endif
+	}
+}
+
+// Enabling asserts for praat_testPlatformAssumptions
+#undef Melder_assert
+#define Melder_assert(x) ((x) ? void (0) : Melder_assert_ (__FILE__, __LINE__, #x))
+
+void praat_testPlatformAssumptions() {
 	/*
 		Check the locale, to ensure identical behaviour on all computers.
 	*/
@@ -1745,8 +1885,12 @@ void praat_run () {
 		Melder_assert (! str32str (U"hellogoodbye", U"oygo"));
 	}
 	Melder_assert (isundef (undefined));
+#ifndef _MSC_VER
 	Melder_assert (isinf (1.0 / 0.0));
 	Melder_assert (isnan (0.0 / 0.0));
+#endif
+	Melder_assert (isinf (INFINITY));
+	Melder_assert (isnan (NAN));
 	{
 		double x = sqrt (-10.0);
 		//if (! isnan (x)) printf ("sqrt (-10.0) = %g\n", x);   // -10.0 on Windows
@@ -1755,14 +1899,24 @@ void praat_run () {
 	}
 	Melder_assert (isdefined (0.0));
 	Melder_assert (isdefined (1e300));
+#ifndef _MSC_VER
 	Melder_assert (isundef ((double) 1e320L));
+#endif
 	Melder_assert (isundef (pow (10.0, 330)));
+#ifndef _MSC_VER
 	Melder_assert (isundef (0.0 / 0.0));
 	Melder_assert (isundef (1.0 / 0.0));
+#endif
+	Melder_assert (isundef (NAN));
+	Melder_assert (isundef (INFINITY));
 	Melder_assert (undefined != undefined);
 	Melder_assert (undefined - undefined != 0.0);
+#ifndef _MSC_VER
 	Melder_assert ((1.0/0.0) == (1.0/0.0));
 	Melder_assert ((1.0/0.0) - (1.0/0.0) != 0.0);
+#endif
+	Melder_assert (INFINITY == INFINITY);
+	Melder_assert (INFINITY - INFINITY != 0.0);
 	{
 		/*
 			Assumptions made in abcio.cpp:
@@ -1771,7 +1925,10 @@ void praat_run () {
 		*/
 		int exponent;
 		Melder_assert (isundef (frexp (HUGE_VAL, & exponent)));
+#ifndef _MSC_VER
 		Melder_assert (isundef (frexp (0.0/0.0, & exponent)));
+#endif
+		Melder_assert (isundef (frexp (NAN, & exponent)));
 		Melder_assert (isundef (frexp (undefined, & exponent)));
 		/*
 			The following relies on the facts that:
@@ -1782,7 +1939,10 @@ void praat_run () {
 			because `! (NaN < 1.0)` is true but `NaN >= 1.0` is false.
 		*/
 		Melder_assert (! (frexp (HUGE_VAL, & exponent) < 1.0));
+#ifndef _MSC_VER
 		Melder_assert (! (frexp (0.0/0.0, & exponent) < 1.0));
+#endif
+		Melder_assert (! (frexp (NAN, & exponent) < 1.0));
 		Melder_assert (! (frexp (undefined, & exponent) < 1.0));
 	}
 	Melder_assert (str32equ (Melder_integer (1234567), U"1234567"));
@@ -1832,114 +1992,6 @@ void praat_run () {
 		"sizeof(integer) should equal the size of a pointer");
 	static_assert (sizeof (off_t) >= 8,
 		"sizeof(off_t) is less than 8. Compile Praat with -D_FILE_OFFSET_BITS=64.");
-
-	if (Melder_batch) {
-		if (thePraatStandAloneScriptText) {
-			try {
-				praat_executeScriptFromText (thePraatStandAloneScriptText);
-				praat_exit (0);
-			} catch (MelderError) {
-				Melder_flushError (praatP.title.get(), U": stand-alone script session interrupted.");
-				praat_exit (-1);
-			}
-		} else if (praatP.hasCommandLineInput) {
-			try {
-				praat_executeCommandFromStandardInput (praatP.title.get());
-				praat_exit (0);
-			} catch (MelderError) {
-				Melder_flushError (praatP.title.get(), U": command line session interrupted.");
-				praat_exit (-1);
-			}
-		} else {
-			try {
-				//Melder_casual (U"Script <<", theCurrentPraatApplication -> batchName.string, U">>");
-				praat_executeScriptFromFileNameWithArguments (theCurrentPraatApplication -> batchName.string);
-				praat_exit (0);
-			} catch (MelderError) {
-				Melder_flushError (praatP.title.get(), U": script command <<",
-					theCurrentPraatApplication -> batchName.string, U">> not completed.");
-				praat_exit (-1);
-			}
-		}
-	} else /* GUI */ {
-		if (! praatP.ignorePreferenceFiles) {
-			trace (U"reading the added script buttons");
-			/* Each line separately: every error should be ignored.
-			 */
-			praatP.phase = praat_READING_BUTTONS;
-			{// scope
-				autostring32 buttons;
-				try {
-					buttons = MelderFile_readText (& buttonsFile);
-				} catch (MelderError) {
-					Melder_clearError ();
-				}
-				if (buttons) {
-					char32 *line = buttons.get();
-					for (;;) {
-						char32 *newline = str32chr (line, U'\n');
-						if (newline) *newline = U'\0';
-						try {
-							praat_executeCommand (nullptr, line);
-						} catch (MelderError) {
-							Melder_clearError ();   // ignore this line, but not necessarily the next
-						}
-						if (! newline)
-							break;
-						line = newline + 1;
-					}
-				}
-			}
-		}
-
-		trace (U"sorting the commands");
-		trace (U"locale is ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
-		praat_sortMenuCommands ();
-		praat_sortActions ();
-
-		praatP.phase = praat_HANDLING_EVENTS;
-
-		if (praatP.userWantsToOpen) {
-			for (; praatP.argumentNumber < praatP.argc; praatP.argumentNumber ++) {
-				//Melder_casual (U"File to open <<", Melder_peek8to32 (theArgv [iarg]), U">>");
-				/*
-					The use double-clicked a Praat file,
-					or dropped a file on the Praat icon,
-					while Praat was not yet running.
-				*/
-				autostring32 text = Melder_dup (Melder_cat (U"Read from file... ",
-															Melder_peek8to32 (praatP.argv [praatP.argumentNumber])));
-				try {
-					praat_executeScriptFromText (text.get());
-				} catch (MelderError) {
-					Melder_flushError ();
-				}
-			}
-		}
-
-		#if gtk
-			//gtk_widget_add_events (G_OBJECT (theCurrentPraatApplication -> topShell), GDK_ALL_EVENTS_MASK);
-			trace (U"install GTK key snooper");
-			trace (U"locale is ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
-			//g_signal_newv ("SENDPRAAT", G_TYPE_FROM_CLASS (gobject_class), G_SIGNAL_RUN_LAST, NULL, NULL, NULL, NULL, G_TYPE_NONE, 0, NULL);
-			g_signal_connect (G_OBJECT (theCurrentPraatApplication -> topShell -> d_gtkWindow), "property-notify-event",
-					G_CALLBACK (cb_userMessage), nullptr);
-			signal (SIGUSR1, cb_sigusr1);
-			gdk_window_add_filter (NULL, sendpraatEventFilter, NULL);
-			gtk_key_snooper_install (theKeySnooper, 0);
-			trace (U"start the GTK event loop");
-			trace (U"locale is ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
-			gtk_main ();
-		#elif motif
-			for (;;) {
-				XEvent event;
-				GuiNextEvent (& event);
-				XtDispatchEvent (& event);
-			}
-		#elif cocoa
-			[NSApp run];
-		#endif
-	}
 }
 
 /* End of file praat.cpp */
